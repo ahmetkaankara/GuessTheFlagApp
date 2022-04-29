@@ -9,80 +9,69 @@ import SwiftUI
 import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+    @State private var countries = ["Estonia","France","Germany","Ireland","Italy","Monaco","Nigeria","Poland","Russia","Spain","UK","US"].shuffled()
+    @State private var correctAnswer = Int.random(in:0...2)
+    @State private var score = 0
+    @State private var showAlert = false
+    @State private var scoreTitle = ""
+    
+    var body: some View{
+        ZStack{
+            LinearGradient(colors: [Color.red,Color.white], startPoint: .top, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+            
+            VStack(spacing:(50)){
+                Spacer()
+                Text("Tap The Flag Of "+countries[correctAnswer])
+                    .font(.largeTitle.bold())
+                    .foregroundColor(Color.white)
+                VStack(spacing:20){
+                    ForEach(0..<3){ number in
+                        Button {
+                            flagTapped(number)
+                        } label: {
+                            Image(countries[number])
+                                .cornerRadius(20)
+                        }
                     }
+                    
+                    Text("Your Score: "+String(score))
                 }
-                .onDelete(perform: deleteItems)
+                Spacer()
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            .alert(scoreTitle, isPresented: $showAlert) {
+                Button("Continue",action: askNewQuestion)
+                
+            }message: {
+                Text("Your Score: "+String(score))
             }
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+    
+    func flagTapped(_ number: Int){
+        if number == correctAnswer{
+            score += 1
+            scoreTitle = "Correct"
         }
+        else{
+            score -= 1
+            scoreTitle = "Wrong"
+        }
+        showAlert = true
+        
+    }
+    
+    func askNewQuestion(){
+        countries.shuffle()
+        correctAnswer = Int.random(in: 0...2)
+        
     }
 }
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        ContentView()
     }
 }
+
+
